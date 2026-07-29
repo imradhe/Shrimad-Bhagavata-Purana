@@ -1,0 +1,9 @@
+indic_transliteration==2.3.82
+requests==2.34.2
+beautifulsoup4==4.15.0
+lxml==6.1.1
+tqdm==4.70.0
+
+# To run the notebook itself
+jupyter==1.1.1
+notebook==7.6.1
