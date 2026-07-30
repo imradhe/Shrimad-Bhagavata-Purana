@@ -177,7 +177,9 @@
 
         const tdSkandha = document.createElement("td");
         tdSkandha.className = "numeric";
-        tdSkandha.textContent = sloka.skandha ?? "";
+        tdSkandha.textContent = sloka.part === "mahatmya" ? "M" : (sloka.skandha ?? "");
+        tdSkandha.title = sloka.part === "mahatmya"
+          ? "Bhagavata Mahatmya (Padma Purana, Uttarakhanda)" : "";
         skandhaSet.add(sloka.skandha);
         tr.appendChild(tdSkandha);
 
@@ -236,14 +238,26 @@
         return tr;
       }
 
-      function fillDropdown(select, values, formatter) {
+      // The Skandha column renders the Mahatmya as "M", so its filter value has to
+      // be the text actually in the cell, while the option reads "Mahatmya".
+      const skandhaCellText = v => (Number(v) === 0 ? "M" : String(v));
+      const skandhaOptionLabel = v => (Number(v) === 0 ? "Mahatmya" : String(v));
+
+      function fillDropdown(select, values, valueOf, labelOf) {
+        // Rebuild rather than append. This runs twice, once for the first page and
+        // again after the background load, and appending left the options in the
+        // order they were discovered ("1, Mahatmya, 2, 3, ...").
+        const keep = select.value;
+        while (select.options.length > 1) select.remove(1);
         values.forEach(v => {
-          if ([...select.options].some(o => o.value === String(v))) return;
+          const value = valueOf ? valueOf(v) : String(v);
+          if ([...select.options].some(o => o.value === value)) return;
           const opt = document.createElement("option");
-          opt.value = String(v);
-          opt.textContent = formatter ? formatter(v) : String(v);
+          opt.value = value;
+          opt.textContent = labelOf ? labelOf(v) : value;
           select.appendChild(opt);
         });
+        if (keep) select.value = keep;
       }
 
       fetch("chandas_viewer_data.json")
@@ -264,7 +278,7 @@
             // the table partway into skandha 3.
             order: [],
             columnDefs: [
-              { targets: [0, 1, 2], type: "num" },
+              { targets: [1, 2], type: "num" },
               { targets: [7, 8], visible: false, searchable: true }
             ],
             language: { search: "Search Sloka / Chanda:" }
@@ -274,14 +288,16 @@
           const chandaDropdown = document.getElementById("chandaDropdown");
           const matchDropdown = document.getElementById("matchDropdown");
 
-          fillDropdown(skandhaDropdown, Array.from(skandhaSet).sort((a, b) => a - b));
+          fillDropdown(skandhaDropdown, Array.from(skandhaSet).sort((a, b) => a - b),
+                       skandhaCellText, skandhaOptionLabel);
           fillDropdown(chandaDropdown, Array.from(chandaSet).sort());
 
           // Column 0 = Skandha, 3 = Chanda. Match lives in a data attribute on
           // the Chanda cell, so it needs a custom search function.
           skandhaDropdown.addEventListener("change", function () {
             const v = this.value;
-            dataTableInstance.column(0).search(v ? `^${v}$` : "", true, false).draw();
+            dataTableInstance.column(0)
+              .search(v ? `^${escapeRegex(v)}$` : "", true, false).draw();
           });
 
           // Column 8 is the hidden, badge-free copy of the chanda label.
@@ -304,7 +320,8 @@
           setTimeout(() => {
             const rows = data.slice(25).map(renderSlokaRow);
             dataTableInstance.rows.add(rows).draw();
-            fillDropdown(skandhaDropdown, Array.from(skandhaSet).sort((a, b) => a - b));
+            fillDropdown(skandhaDropdown, Array.from(skandhaSet).sort((a, b) => a - b),
+                         skandhaCellText, skandhaOptionLabel);
             fillDropdown(chandaDropdown, Array.from(chandaSet).sort());
             updateSummary(data);
           }, 250);

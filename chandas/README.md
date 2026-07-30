@@ -1,7 +1,8 @@
 # Chandas annotation of the Bhāgavata Purāṇa
 
-Metre (chanda) identification for all 14,088 slokas of the corpus in this repo, using the
-Chandojñānam engine, plus a DataTables HTML viewer.
+Metre (chanda) identification for all **14,592 slokas** of the corpus in this repo (14,088
+of the Purāṇa proper plus 504 of the Bhāgavata Māhātmya), using the Chandojñānam engine,
+plus a DataTables HTML viewer.
 
 This mirrors what the [`imradhe/chanda`](https://github.com/imradhe/chanda) repo does for the
 Rāmāyaṇa, adapted to the Bhāgavata corpus and its `skandha` / `adhyaya` / `sloka` hierarchy.
@@ -11,8 +12,8 @@ Rāmāyaṇa, adapted to the Bhāgavata corpus and its `skandha` / `adhyaya` / `
 | Path | What it is |
 |---|---|
 | `annotate_chandas.py` | Runs the engine over `../data/bhagavata_purana.json` |
-| `bhagavata_purana_chandas.json` | 46 MB, the annotated corpus (full corpus plus a `chandas` block per sloka) |
-| `chandas_viewer_data.json` | 9.6 MB, lean flat payload the viewer fetches |
+| `bhagavata_purana_chandas.json` | 48 MB, the annotated corpus (full corpus plus a `chandas` block per sloka) |
+| `chandas_viewer_data.json` | 10.2 MB, lean flat payload the viewer fetches |
 | `index.html` | The viewer |
 | `chanda/` | Vendored Chandojñānam engine and its metre definition CSVs |
 | `ATTRIBUTION.md` | Provenance and licence of the vendored engine |
@@ -27,8 +28,9 @@ Rāmāyaṇa, adapted to the Bhāgavata corpus and its `skandha` / `adhyaya` / `
 ./.venv/bin/python chandas/annotate_chandas.py
 ```
 
-It takes about 16 seconds for the whole corpus, roughly 1.1 ms per sloka. Pass
-`--limit N` for a quick check without writing the output files.
+It takes about 16 seconds for the whole corpus, roughly 1.1 ms per sloka. The Māhātmya is
+annotated alongside the twelve skandhas and appears in the viewer's Skandha filter as
+`Mahatmya`. Pass `--limit N` for a quick check without writing the output files.
 
 ## Viewing it
 
@@ -40,42 +42,42 @@ python3 -m http.server 8765 --directory chandas
 
 Then open `http://localhost:8765/index.html`.
 
-The viewer gives you Skandha / Chanda / Match filters, a free-text search, and a
-transliteration dropdown covering IAST, ITRANS, Harvard-Kyoto, SLP1, Velthuis and nine
+The viewer gives you Skandha (including `Mahatmya`) / Chanda / Match filters, a free-text
+search, and a transliteration dropdown covering IAST, ITRANS, Harvard-Kyoto, SLP1, Velthuis and nine
 Indic scripts, applied on hover over the Text and Chanda columns.
 
 ## Results
 
 | Match tier | Slokas | Share |
 |---|---|---|
-| `exact` | 12,430 | 88.2% |
-| `fuzzy` | 1,143 | 8.1% |
-| `none` | 515 | 3.7% |
+| `exact` | 12,911 | 88.5% |
+| `fuzzy` | 1,158 | 7.9% |
+| `none` | 523 | 3.6% |
 | `not_applicable` | 1 | the single vachana-only record, which has no verse |
 
-**122 distinct metres** were identified. The twenty most common:
+**128 distinct metres** were identified. The twenty most common:
 
 | Chanda | Slokas |
 |---|---|
-| अनुष्टुभ् | 10,306 |
-| वसन्ततिलका / सिंहोन्नता / सिंहोद्धता / उद्धर्षिणी | 684 |
-| वंशस्थ / वंशस्थविल / वंशस्तनित | 476 |
-| इन्द्रवज्रा | 348 |
-| इन्द्रवंशा | 303 |
-| इन्द्रवंशा / वंशस्थ / वंशस्थविल / वंशस्तनित | 242 |
-| उपेन्द्रवज्रा | 224 |
-| इन्द्रवज्रा / उपेन्द्रवज्रा | 198 |
-| नाराचिका | 87 |
+| अनुष्टुभ् | 10,748 |
+| वसन्ततिलका / सिंहोन्नता / सिंहोद्धता / उद्धर्षिणी | 694 |
+| वंशस्थ / वंशस्थविल / वंशस्तनित | 477 |
+| इन्द्रवज्रा | 354 |
+| इन्द्रवंशा | 313 |
+| इन्द्रवंशा / वंशस्थ / वंशस्थविल / वंशस्तनित | 243 |
+| उपेन्द्रवज्रा | 227 |
+| इन्द्रवज्रा / उपेन्द्रवज्रा | 202 |
+| नाराचिका | 88 |
 | वंशस्थ / वंशस्थविल / वंशस्तनित / इन्द्रवंशा | 64 |
 | वक्त्र | 43 |
 | मन्दाक्रान्ता | 34 |
+| औपच्छन्दसिक / पुष्पिताग्रा | 28 |
 | नर्दटक / नर्कुटक | 28 |
-| औपच्छन्दसिक / पुष्पिताग्रा | 27 |
 | पञ्चचामर / प्रमाणिका / नगस्वरूपिणी | 27 |
 | उपेन्द्रवज्रा / इन्द्रवज्रा | 26 |
+| मालिनी | 24 |
 | भुजङ्गसङ्गता | 21 |
-| मालिनी | 21 |
-| मदनललिता | 20 |
+| मदनललिता | 21 |
 | स्वागता | 20 |
 
 A `/` separated label means the engine could not disambiguate between metres with identical
@@ -85,6 +87,7 @@ laghu-guru patterns. That is a genuine ambiguity in the pattern, not a failure.
 
 | Skandha | Slokas | exact | fuzzy | none |
 |---|---|---|---|---|
+| Māhātmya | 504 | 481 | 15 | 8 |
 | 1 | 813 | 734 | 75 | 4 |
 | 2 | 391 | 341 | 49 | 1 |
 | 3 | 1,413 | 1,267 | 140 | 6 |
@@ -151,6 +154,6 @@ structure.
 
 **The annotated corpus duplicates the base corpus.** `bhagavata_purana_chandas.json` is the
 full corpus plus annotations, which is self-contained and matches the shape of
-`slokas_with_chanda.json` in the chanda repo, at the cost of 46 MB that largely repeats
+`slokas_with_chanda.json` in the chanda repo, at the cost of 48 MB that largely repeats
 `../data/bhagavata_purana.json`. If repo size matters more than self-containment, the
 annotations alone keyed by `id` would be a few MB.

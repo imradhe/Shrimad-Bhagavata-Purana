@@ -117,6 +117,10 @@ def annotate(limit=None):
     records = [r for sk in corpus["skandhas"]
                for ad in sk["adhyayas"]
                for r in ad["slokas"]]
+    # The Mahatmya sits outside `skandhas` so the canonical 12 / 335 counts stay
+    # exact, but its verses are metrical and belong in the annotation.
+    records += [r for ad in corpus.get("mahatmya", {}).get("adhyayas", [])
+                for r in ad["slokas"]]
     if limit:
         records = records[:limit]
 
@@ -146,25 +150,28 @@ def annotate(limit=None):
 
 def build_viewer_payload(corpus):
     """Flatten to the minimum the viewer needs, so the page loads quickly."""
+    sections = [(sk["skandha"], ad) for sk in corpus["skandhas"] for ad in sk["adhyayas"]]
+    sections += [(0, ad) for ad in corpus.get("mahatmya", {}).get("adhyayas", [])]
+
     rows = []
-    for sk in corpus["skandhas"]:
-        for ad in sk["adhyayas"]:
-            title = ad["titles"]["tagare"] or ad["titles"]["anand_aadhar"]
-            for rec in ad["slokas"]:
-                ch = rec["chandas"]
-                rows.append({
-                    "id": rec["id"],
-                    "skandha": rec["skandha"],
-                    "adhyaya": rec["adhyaya"],
-                    "sloka": rec["sloka"],
-                    "adhyaya_title": title,
-                    "chanda": ch["chanda"],
-                    "match": ch["match"],
-                    "vachana": (rec["vachana"] or {}).get("devanagari"),
-                    "padas": [p["devanagari"] for p in rec["text"]["padas"]] if rec["text"] else [],
-                    "guru_laghu": ch["guru_laghu"],
-                    "gana": ch["gana"],
-                })
+    for _skandha, ad in sections:
+        title = ad["titles"].get("tagare") or ad["titles"].get("anand_aadhar")
+        for rec in ad["slokas"]:
+            ch = rec["chandas"]
+            rows.append({
+                "id": rec["id"],
+                "part": rec.get("part", "purana"),
+                "skandha": rec["skandha"],
+                "adhyaya": rec["adhyaya"],
+                "sloka": rec["sloka"],
+                "adhyaya_title": title,
+                "chanda": ch["chanda"],
+                "match": ch["match"],
+                "vachana": (rec["vachana"] or {}).get("devanagari"),
+                "padas": [p["devanagari"] for p in rec["text"]["padas"]] if rec["text"] else [],
+                "guru_laghu": ch["guru_laghu"],
+                "gana": ch["gana"],
+            })
     return rows
 
 
@@ -181,16 +188,18 @@ def report(corpus, records, stats):
         print(f"  {n:>6,}  {name}")
 
     by_skandha = collections.defaultdict(collections.Counter)
-    for sk in corpus["skandhas"]:
-        for ad in sk["adhyayas"]:
-            for r in ad["slokas"]:
-                if "chandas" in r:     # absent for the tail of a --limit run
-                    by_skandha[sk["skandha"]][r["chandas"]["match"]] += 1
+    groups = [(sk["skandha"], ad) for sk in corpus["skandhas"] for ad in sk["adhyayas"]]
+    groups += [(0, ad) for ad in corpus.get("mahatmya", {}).get("adhyayas", [])]
+    for skandha, ad in groups:
+        for r in ad["slokas"]:
+            if "chandas" in r:         # absent for the tail of a --limit run
+                by_skandha[skandha][r["chandas"]["match"]] += 1
     print(f"\n{'skandha':>8} {'slokas':>7} {'exact':>7} {'fuzzy':>7} {'none':>6}")
     for s in sorted(by_skandha):
         c = by_skandha[s]
         total = sum(c.values())
-        print(f"{s:>8} {total:>7,} {c['exact']:>7,} {c['fuzzy']:>7,} {c['none']:>6,}")
+        label = "mahatmya" if s == 0 else str(s)
+        print(f"{label:>8} {total:>7,} {c['exact']:>7,} {c['fuzzy']:>7,} {c['none']:>6,}")
 
 
 def main():

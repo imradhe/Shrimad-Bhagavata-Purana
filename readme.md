@@ -6,6 +6,7 @@ every verse.
 
 ```
 12 skandhas  →  335 adhyāyas  →  14,088 ślokas  →  pādas
+   plus the Bhāgavata Māhātmya:  6 adhyāyas  →  504 ślokas
 ```
 
 The four hierarchy levels are named `skandha`, `adhyaya`, `sloka` and `pada` throughout the
@@ -18,6 +19,7 @@ JSON. Because `sloka` is the verse *number*, the verse *text* lives under `text`
 | [`notebooks/bhagavata_purana_pipeline.ipynb`](notebooks/bhagavata_purana_pipeline.ipynb) | The pipeline: downloads, parses, scrapes, validates, writes the JSON |
 | `data/bhagavata_purana.json` | **The deliverable**, full nested corpus |
 | `data/bhagavata_purana_flat.jsonl` | One sloka per line, keyed `skandha`/`adhyaya`/`sloka` |
+| `chandas/` | Metre annotation and viewer. See [chandas/README.md](chandas/README.md) |
 | `data/raw/` | Cached upstream pages, so re-runs make no network requests |
 
 ## Quick start
@@ -84,6 +86,41 @@ Nesting mirrors the same names: `corpus.skandhas[].adhyayas[].slokas[]`, with
 `adhyaya_count` and `sloka_count` on each level. Records may also carry `variants`
 (other-edition readings) and `anomalies` (source irregularities). See below.
 
+### Structural vachanas, the maṅgala block, and the Māhātmya
+
+The **combined** `bhagpur.itx` used for verse text carries only numbered verse lines. The
+**per-skandha** files that sanskritdocuments also publishes are a more recently proofread
+edition carrying apparatus the combined file lacks, and that apparatus is now included:
+
+| Field | What it holds |
+|---|---|
+| `skandhas[].adhyayas[].heading` | `प्रथमोऽध्यायः`, the `atha prathamo'dhyāyaḥ` style heading |
+| `skandhas[].adhyayas[].colophon` | `iti ... prathamo'dhyāyaḥ`, naming the adhyāya's subject |
+| `skandhas[].invocation` | `ॐ नमो भगवते वासुदेवाय` |
+| `skandhas[].mangala` | The reciter's preliminary prayer, present only before skandha 1 |
+| `mahatmya` | The Bhāgavata Māhātmya, 6 adhyāyas and 504 ślokas |
+
+327 of 335 adhyāyas have a heading and 332 have a colophon. The three colophons absent
+(**4.2**, **7.13**, **10.25**) are omitted by the source, and are `null` rather than guessed
+at; the notebook asserts that exact set so a new omission fails the run.
+
+The **maṅgala block** before skandha 1 is nine units: seven prayer verses and a nyāsa
+sequence (`guṃ gurubhyo namaḥ | gaṃ gaṇapataye namaḥ | ...`). It is what a reciter says
+before beginning, not Purāṇa text, so it is kept apart. Two of its verses are in fact
+12.13.22 and 12.13.23 repeated.
+
+The **Māhātmya** is a separate top-level section, not a thirteenth skandha, because its own
+colophon places it in the *Padma Purāṇa, Uttarakhaṇḍa*: it frames the Bhāgavata rather than
+belonging to it. Its ids are `M.<adhyaya>.<sloka>` and its rows carry `part: "mahatmya"`
+with `skandha: 0`. Keeping it out of `skandhas` leaves the canonical 12 / 335 counts exact.
+Tagare covers 498 of its 504 ślokas; bhagavata.org does not carry it.
+
+Verse text stays on the combined edition throughout. The two editions **disagree slightly on
+verse splitting** (805 vs 813 for skandha 1, 567 vs 565 for skandha 12), so rebuilding verses
+from the per-skandha files would shift verse numbers and invalidate both the translation
+alignment and the chandas run. Only apparatus, which attaches at adhyāya level, is taken
+from them.
+
 ### Vachanas are tagged, not discarded
 
 Speaker attributions and prose lead-ins such as `śrī-śuka uvāca`, `rājovāca`,
@@ -91,11 +128,10 @@ Speaker attributions and prose lead-ins such as `śrī-śuka uvāca`, `rājovāc
 pāda `0`, so the pipeline lifts all **1,332** of them into a separate `vachana` field on the record they
 introduce, typed `speaker` (1,323) or `lead_in` (9). The `text` field is verse only.
 
-There were no `atha prathamo'dhyāyaḥ` / `iti … skandhaḥ` headings to strip in the first
-place: the sanskritdocuments ITRANS edition carries no running headers, encoding the
-structure purely in an 8-digit numeric line prefix `SSCCVVVP`
-(skandha, adhyāya, śloka, pāda). The notebook verifies that this reading recovers exactly
-the canonical 12 / 335 structure.
+The combined ITRANS file carries no running headers, encoding the structure purely in an
+8-digit numeric line prefix `SSCCVVVP` (skandha, adhyāya, śloka, pāda). The notebook verifies
+that this reading recovers exactly the canonical 12 / 335 structure. The headings themselves
+come from the per-skandha edition, as described above.
 
 Two edge cases are represented explicitly rather than papered over:
 
@@ -112,9 +148,10 @@ Two edge cases are represented explicitly rather than papered over:
 
 | Role | Source | Edition |
 |---|---|---|
-| Sanskrit | [sanskritdocuments.org](https://sanskritdocuments.org/doc_purana/bhagpur.itx) | ITRANS e-text, converted to Devanāgarī + IAST |
+| Sanskrit, verses | [sanskritdocuments.org](https://sanskritdocuments.org/doc_purana/bhagpur.itx) | combined ITRANS e-text, converted to Devanāgarī + IAST |
+| Sanskrit, apparatus + Māhātmya | [per-skandha files](https://sanskritdocuments.org/doc_purana/bhagpur-01.itx) and [`bhagpur-00-mahatmyam.itx`](https://sanskritdocuments.org/doc_purana/bhagpur-00-mahatmyam.itx) | more recently proofread edition |
 | Translation A | [wisdomlib.org](https://www.wisdomlib.org/hinduism/book/the-bhagavata-purana) | **G. V. Tagare**, *The Bhāgavata Purāṇa* (Motilal Banarsidass, AITM), the standard academic translation |
-| Translation B | [bhagavata.org](https://bhagavata.org) | **Anand Aadhar**, *Śrīmad Bhāgavatam*, 3rd revised ed. |
+| Translation B | [bhagavata.org](https://bhagavata.org) | **Anand Aadhar**, *Śrīmad Bhāgavatam*, 3rd revised ed. Does not cover the Māhātmya. |
 
 Where a translator groups verses (`4-5`), the same text is attached to each verse of the
 range, with `grouped: true` and `ref` recording the range. Nothing is re-indexed or shifted
