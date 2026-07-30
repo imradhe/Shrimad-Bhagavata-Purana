@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bhagavata Purana: Sloka Viewer by Chanda</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <!-- Sanscript.js -->
+    <script src="https://smruthi.in/test/assets/sanscript/sanscript.js"></script>
+
+    <style>
+      body {
+        background-color: #f8f9fa;
+        padding: 2rem;
+        font-family: "Noto Sans Devanagari", serif;
+      }
+      .sloka-text {
+        font-size: 1.1rem;
+        white-space: pre-line;
+      }
+      .vachana {
+        font-size: 0.9rem;
+        color: #6c757d;
+        display: block;
+      }
+      #loadingOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(255, 255, 255, 0.85);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+      .transliterated-text {
+        font-style: italic;
+        color: #555;
+      }
+      .lg-text {
+        font-size: 0.95rem;
+        white-space: pre-line;
+        color: #333;
+      }
+      td.numeric {
+        text-align: right;
+        white-space: nowrap;
+      }
+      .badge-match {
+        font-size: 0.7rem;
+        vertical-align: middle;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading Spinner -->
+    <div id="loadingOverlay">
+      <div class="spinner-border text-primary mb-3" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <div class="fw-bold">Loading Slokas...</div>
+      <div class="text-muted small mt-1" id="loadingDetail"></div>
+    </div>
+
+    <div class="container-fluid">
+      <h2 class="mb-1">Bhagavata Purana: Sloka Viewer by Chanda</h2>
+      <p class="text-muted" id="summaryLine"></p>
+
+      <!-- Filter Controls -->
+      <div class="row mb-3 g-3">
+        <div class="col-md-3">
+          <label for="skandhaDropdown" class="form-label">Skandha:</label>
+          <select id="skandhaDropdown" class="form-select">
+            <option value="">All</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="chandaDropdown" class="form-label">Filter by Chanda:</label>
+          <select id="chandaDropdown" class="form-select">
+            <option value="">All</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="matchDropdown" class="form-label">
+            Match
+            <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top"
+               title="exact: metre matched outright. fuzzy: nearest metre by edit distance, treat as a suggestion. none: no metre matched, laghu-guru and gana are still shown."></i>
+          </label>
+          <select id="matchDropdown" class="form-select">
+            <option value="">All</option>
+            <option value="exact">exact</option>
+            <option value="fuzzy">fuzzy</option>
+            <option value="none">none</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="translitDropdown" class="form-label">
+            Transliteration:
+            <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="top" title="Hover over the text to see transliteration"></i>
+          </label>
+          <select id="translitDropdown" class="form-select">
+            <option value="devanagari">Devanagari</option>
+            <option value="iast">IAST</option>
+            <option value="itrans">ITRANS</option>
+            <option value="hk">Harvard-Kyoto</option>
+            <option value="slp1">SLP1</option>
+            <option value="velthuis">Velthuis</option>
+            <option value="telugu">Telugu</option>
+            <option value="kannada">Kannada</option>
+            <option value="malayalam">Malayalam</option>
+            <option value="tamil">Tamil</option>
+            <option value="bengali">Bengali</option>
+            <option value="gujarati">Gujarati</option>
+            <option value="oriya">Oriya</option>
+            <option value="gurmukhi">Gurmukhi</option>
+            <option value="assamese">Assamese</option>
+            <option value="manipuri">Manipuri</option>
+            <option value="urdu">Urdu</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <table id="slokaTable" class="table table-bordered table-striped align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Skandha</th>
+            <th>Adhyaya</th>
+            <th>Sloka</th>
+            <th>Chanda</th>
+            <th>Text</th>
+            <th>Guru Laghu</th>
+            <th>Gana</th>
+            <th>Match</th>
+            <th>ChandaRaw</th>
+          </tr>
+        </thead>
+        <tbody id="slokaTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      let dataTableInstance;
+      const chandaSet = new Set();
+      const skandhaSet = new Set();
+
+      const MATCH_BADGE = {
+        exact: "",
+        fuzzy: '<span class="badge text-bg-warning badge-match ms-1">fuzzy</span>',
+        none: '<span class="badge text-bg-secondary badge-match ms-1">none</span>',
+        not_applicable: '<span class="badge text-bg-light badge-match ms-1">n/a</span>'
+      };
+
+      function escapeHtml(s) {
+        return String(s == null ? "" : s)
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function renderSlokaRow(sloka) {
+        const tr = document.createElement("tr");
+
+        const tdSkandha = document.createElement("td");
+        tdSkandha.className = "numeric";
+        tdSkandha.textContent = sloka.skandha ?? "";
+        skandhaSet.add(sloka.skandha);
+        tr.appendChild(tdSkandha);
+
+        const tdAdhyaya = document.createElement("td");
+        tdAdhyaya.className = "numeric";
+        tdAdhyaya.textContent = sloka.adhyaya ?? "";
+        tdAdhyaya.title = sloka.adhyaya_title || "";
+        tr.appendChild(tdAdhyaya);
+
+        const tdSloka = document.createElement("td");
+        tdSloka.className = "numeric";
+        tdSloka.textContent = sloka.sloka ?? "";
+        tdSloka.title = sloka.id || "";
+        tr.appendChild(tdSloka);
+
+        // Chanda, with the match tier as a badge so a fuzzy guess is visible.
+        const tdChanda = document.createElement("td");
+        const chandaValue = sloka.chanda || "Unknown";
+        tdChanda.setAttribute("data-original", chandaValue);
+        tdChanda.setAttribute("data-match", sloka.match || "");
+        tdChanda.innerHTML = escapeHtml(chandaValue) + (MATCH_BADGE[sloka.match] || "");
+        chandaSet.add(chandaValue);
+        tr.appendChild(tdChanda);
+
+        const tdText = document.createElement("td");
+        const text = (sloka.padas || []).join("\n");
+        const vachana = sloka.vachana
+          ? `<span class="vachana">${escapeHtml(sloka.vachana)}</span>` : "";
+        tdText.innerHTML =
+          vachana + `<div class="sloka-text" data-original="${escapeHtml(text)}">${escapeHtml(text)}</div>`;
+        tr.appendChild(tdText);
+
+        const tdGuruLaghu = document.createElement("td");
+        tdGuruLaghu.innerHTML =
+          `<div class="lg-text">${escapeHtml((sloka.guru_laghu || []).join("\n"))}</div>`;
+        tr.appendChild(tdGuruLaghu);
+
+        const tdGana = document.createElement("td");
+        tdGana.innerHTML =
+          `<div class="lg-text">${escapeHtml((sloka.gana || []).join("\n"))}</div>`;
+        tr.appendChild(tdGana);
+
+        // Hidden but searchable, so the Match filter goes through DataTables'
+        // own cached column data. Filtering on a DOM attribute instead would
+        // silently no-op under deferRender, where most rows have no node yet.
+        const tdMatch = document.createElement("td");
+        tdMatch.textContent = sloka.match || "";
+        tr.appendChild(tdMatch);
+
+        // The visible Chanda cell carries a match badge, whose text would break an
+        // anchored search. Filter against this clean copy instead.
+        const tdChandaRaw = document.createElement("td");
+        tdChandaRaw.textContent = chandaValue;
+        tr.appendChild(tdChandaRaw);
+
+        return tr;
+      }
+
+      function fillDropdown(select, values, formatter) {
+        values.forEach(v => {
+          if ([...select.options].some(o => o.value === String(v))) return;
+          const opt = document.createElement("option");
+          opt.value = String(v);
+          opt.textContent = formatter ? formatter(v) : String(v);
+          select.appendChild(opt);
+        });
+      }
+
+      fetch("chandas_viewer_data.json")
+        .then(response => response.json())
+        .then(data => {
+          const tbody = document.getElementById("slokaTableBody");
+
+          // Render a first page immediately so the table appears at once.
+          data.slice(0, 25).forEach(sloka => tbody.appendChild(renderSlokaRow(sloka)));
+
+          dataTableInstance = $("#slokaTable").DataTable({
+            pageLength: 25,
+            lengthMenu: [10, 25, 50, 100],
+            deferRender: true,
+            // The payload is already in canonical skandha/adhyaya/sloka order, so
+            // keep insertion order rather than sorting. A multi-column initial
+            // sort proved unreliable here: it grouped rows by Chanda and opened
+            // the table partway into skandha 3.
+            order: [],
+            columnDefs: [
+              { targets: [0, 1, 2], type: "num" },
+              { targets: [7, 8], visible: false, searchable: true }
+            ],
+            language: { search: "Search Sloka / Chanda:" }
+          });
+
+          const skandhaDropdown = document.getElementById("skandhaDropdown");
+          const chandaDropdown = document.getElementById("chandaDropdown");
+          const matchDropdown = document.getElementById("matchDropdown");
+
+          fillDropdown(skandhaDropdown, Array.from(skandhaSet).sort((a, b) => a - b));
+          fillDropdown(chandaDropdown, Array.from(chandaSet).sort());
+
+          // Column 0 = Skandha, 3 = Chanda. Match lives in a data attribute on
+          // the Chanda cell, so it needs a custom search function.
+          skandhaDropdown.addEventListener("change", function () {
+            const v = this.value;
+            dataTableInstance.column(0).search(v ? `^${v}$` : "", true, false).draw();
+          });
+
+          // Column 8 is the hidden, badge-free copy of the chanda label.
+          chandaDropdown.addEventListener("change", function () {
+            const v = this.value;
+            dataTableInstance.column(8).search(v ? `^${escapeRegex(v)}$` : "", true, false).draw();
+          });
+
+          // Column 7 is the hidden Match column.
+          matchDropdown.addEventListener("change", function () {
+            const v = this.value;
+            dataTableInstance.column(7).search(v ? `^${v}$` : "", true, false).draw();
+          });
+
+          document.getElementById("loadingOverlay").style.display = "none";
+          addTransliterationHoverHandlers();
+
+          // Load the remainder in the background.
+          document.getElementById("loadingDetail").textContent = "";
+          setTimeout(() => {
+            const rows = data.slice(25).map(renderSlokaRow);
+            dataTableInstance.rows.add(rows).draw();
+            fillDropdown(skandhaDropdown, Array.from(skandhaSet).sort((a, b) => a - b));
+            fillDropdown(chandaDropdown, Array.from(chandaSet).sort());
+            updateSummary(data);
+          }, 250);
+
+          updateSummary(data);
+        })
+        .catch(err => {
+          document.getElementById("loadingOverlay").innerHTML =
+            `<div class="alert alert-danger">Could not load chandas_viewer_data.json.<br>${escapeHtml(err.message)}</div>`;
+        });
+
+      function escapeRegex(s) {
+        return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
+      function updateSummary(data) {
+        const counts = { exact: 0, fuzzy: 0, none: 0, not_applicable: 0 };
+        data.forEach(d => { if (counts[d.match] !== undefined) counts[d.match]++; });
+        const distinct = new Set(data.filter(d => d.chanda).map(d => d.chanda)).size;
+        document.getElementById("summaryLine").textContent =
+          `${data.length.toLocaleString()} slokas, ${distinct} distinct chandas. ` +
+          `Match: ${counts.exact.toLocaleString()} exact, ` +
+          `${counts.fuzzy.toLocaleString()} fuzzy, ${counts.none.toLocaleString()} none.`;
+      }
+
+      function addTransliterationHoverHandlers() {
+        const schemeSelect = document.getElementById("translitDropdown");
+
+        // Column 5 (1-indexed) is Text.
+        $("#slokaTable tbody").on("mouseenter", "td:nth-child(5)", function () {
+          const targetScheme = schemeSelect.value;
+          if (targetScheme === "devanagari") return;
+          const div = $(this).find(".sloka-text");
+          const original = div.attr("data-original");
+          if (!original) return;
+          div.html(`<span class="transliterated-text">${Sanscript.t(original, "devanagari", targetScheme)}</span>`);
+        });
+
+        $("#slokaTable tbody").on("mouseleave", "td:nth-child(5)", function () {
+          const div = $(this).find(".sloka-text");
+          const original = div.attr("data-original");
+          if (original) div.text(original);
+        });
+
+        // Column 4 is Chanda; keep its match badge when restoring.
+        $("#slokaTable tbody").on("mouseenter", "td:nth-child(4)", function () {
+          const targetScheme = schemeSelect.value;
+          if (targetScheme === "devanagari") return;
+          const original = $(this).attr("data-original");
+          if (!original) return;
+          $(this).html(`<span class="transliterated-text">${Sanscript.t(original, "devanagari", targetScheme)}</span>`);
+        });
+
+        $("#slokaTable tbody").on("mouseleave", "td:nth-child(4)", function () {
+          const original = $(this).attr("data-original");
+          if (!original) return;
+          const match = $(this).attr("data-match");
+          $(this).html(escapeHtml(original) + (MATCH_BADGE[match] || ""));
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+          .forEach(el => new bootstrap.Tooltip(el));
+      });
+    </script>
+  </body>
+</html>
